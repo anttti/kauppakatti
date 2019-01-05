@@ -1,6 +1,5 @@
 import "./main.css";
 import { Elm } from "./Main.elm";
-import registerServiceWorker from "./registerServiceWorker";
 
 import firebase from "firebase/app";
 require("firebase/firestore");
@@ -20,25 +19,58 @@ db.settings({
   timestampsInSnapshots: true
 });
 
+const isValidPayload = payload => {
+  if (payload.action === undefined) {
+    return false;
+  }
+  return true;
+};
+
 const start = () => {
   db.collection("shoppinglist")
     .get()
     .then(querySnapshot => {
-      const items = [];
-      querySnapshot.forEach(item => {
-        items.push(item.data());
+      const items = querySnapshot.docs.map(item => {
+        return {
+          ...item.data(),
+          id: item.id
+        };
       });
 
       const initialModel = {
         items,
         newItemName: ""
       };
+      console.log("initial items", items);
+
       const app = Elm.Main.init({
         node: document.getElementById("root"),
         flags: initialModel
       });
+
       app.ports.outputValue.subscribe(data => {
-        console.log("got from elm:", data);
+        if (!isValidPayload(data)) {
+          return;
+        }
+        console.log("action:", data);
+        switch (data.action) {
+          case "create":
+            db.collection("shoppinglist").add({
+              name: data.name,
+              isDone: false
+            });
+            break;
+          case "update":
+            db.collection("shoppinglist")
+              .doc(data.id)
+              .set({
+                name: data.name,
+                isDone: data.isDone
+              });
+            break;
+          default:
+            break;
+        }
       });
     });
 };

@@ -1,7 +1,7 @@
 port module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
-import Html exposing (Attribute, Html, div, h1, img, input, li, text, ul)
+import Html exposing (Attribute, Html, div, h1, img, input, label, li, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
@@ -21,24 +21,43 @@ encodeAction item action =
         [ ( "action", Encode.string action )
         , ( "name", Encode.string item.name )
         , ( "isDone", Encode.bool item.isDone )
+        , ( "id", Encode.string item.id )
+        ]
+
+
+encodeCreateAction : String -> Encode.Value
+encodeCreateAction name =
+    Encode.object
+        [ ( "action", Encode.string "create" )
+        , ( "name", Encode.string name )
         ]
 
 
 createItem : String -> Cmd msg
 createItem name =
     let
-        item =
-            Item name False
-
-        encodedItem =
-            encodeAction item "create"
+        encoded =
+            encodeCreateAction name
     in
-    outputValue encodedItem
+    outputValue encoded
+
+
+toggleItem : Item -> Cmd msg
+toggleItem item =
+    let
+        newItem =
+            Item item.name (not item.isDone) item.id
+
+        encoded =
+            encodeAction newItem "update"
+    in
+    outputValue encoded
 
 
 type alias Item =
     { name : String
     , isDone : Bool
+    , id : String
     }
 
 
@@ -74,6 +93,7 @@ type Msg
     = NoOp
     | ChangeNewItem String
     | CreateNewItem
+    | ToggleItem Item
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,6 +112,9 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        ToggleItem item ->
+            ( model, toggleItem item )
 
 
 onEnter : Msg -> Attribute Msg
@@ -122,7 +145,12 @@ view model =
 
 viewItem : Item -> Html Msg
 viewItem item =
-    li [] [ text item.name ]
+    li []
+        [ label []
+            [ input [ type_ "checkbox", checked item.isDone, onClick (ToggleItem item) ] []
+            , text (item.name ++ " (" ++ item.id ++ ")")
+            ]
+        ]
 
 
 main : Program Model Model Msg
