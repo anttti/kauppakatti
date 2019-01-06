@@ -2,6 +2,7 @@ import "./main.css";
 import { Elm } from "./Main.elm";
 
 import firebase from "firebase/app";
+require("firebase/auth");
 require("firebase/firestore");
 
 firebase.initializeApp({
@@ -26,9 +27,11 @@ const isValidPayload = payload => {
   return true;
 };
 
-const start = () => {
+const start = uid => {
   let elm;
-  db.collection("shoppinglist")
+  const itemsCollection = `shoppinglist/${uid}/items`;
+  console.log("accessing", itemsCollection);
+  db.collection(itemsCollection)
     .get()
     .then(querySnapshot => {
       const items = querySnapshot.docs.map(item => {
@@ -56,13 +59,13 @@ const start = () => {
         console.log("action:", data);
         switch (data.action) {
           case "create":
-            db.collection("shoppinglist").add({
+            db.collection(itemsCollection).add({
               name: data.name,
               isDone: false
             });
             break;
           case "update":
-            db.collection("shoppinglist")
+            db.collection(itemsCollection)
               .doc(data.id)
               .set({
                 name: data.name,
@@ -75,13 +78,7 @@ const start = () => {
       });
     });
 
-  db.collection("shoppinglist").onSnapshot(querySnapshot => {
-    // querySnapshot.docChanges().forEach(change => {
-    //   const updatedItem = {
-    //     ...change.doc.data(),
-    //     id: change.doc.id
-    //   };
-    // });
+  db.collection(itemsCollection).onSnapshot(querySnapshot => {
     const items = querySnapshot.docs.map(item => {
       return {
         ...item.data(),
@@ -92,4 +89,15 @@ const start = () => {
   });
 };
 
-start();
+const authProvider = new firebase.auth.GoogleAuthProvider();
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    // Logged in
+    console.log("logged in");
+    start(user.uid);
+  } else {
+    // Logged out
+    console.log("logged out");
+    firebase.auth().signInWithPopup(authProvider);
+  }
+});

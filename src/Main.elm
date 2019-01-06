@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import List
 import Maybe
 import Ports exposing (..)
 import Types exposing (..)
@@ -30,6 +31,17 @@ toggleItem item =
             encodeAction newItem "update"
     in
     updateItem encoded
+
+
+sortByIsDone a b =
+    if a.isDone == b.isDone then
+        EQ
+
+    else if a.isDone && not b.isDone then
+        GT
+
+    else
+        LT
 
 
 initialModel =
@@ -89,8 +101,8 @@ view model =
         newItem =
             Maybe.withDefault "" model.newItemName
     in
-    div [ class "p-4 m-6 ml-auto mr-auto max-w-md bg-white shadow-lg rounded" ]
-        [ ul [ class "list-reset" ] (List.map viewItem model.items)
+    div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
+        [ ul [ class "list-reset" ] (List.map viewItem (List.sortWith sortByIsDone model.items))
         , viewAddItemInput newItem
         ]
 
@@ -108,7 +120,7 @@ viewItem : Item -> Html Msg
 viewItem item =
     let
         defaultClasses =
-            "block text-xl cursor-pointer"
+            "block text-xl"
 
         labelClasses =
             if item.isDone then
@@ -117,8 +129,8 @@ viewItem item =
             else
                 defaultClasses
     in
-    li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter" ]
-        [ label [ class labelClasses, onClick (ToggleItem item) ]
+    li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter cursor-pointer", onClick (ToggleItem item) ]
+        [ label [ class labelClasses ]
             [ text item.name
             ]
         ]
