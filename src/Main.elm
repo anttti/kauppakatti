@@ -12,7 +12,7 @@ import Maybe
 port outputValue : Encode.Value -> Cmd msg
 
 
-port inputValue : (Int -> msg) -> Sub msg
+port itemsUpdated : (Decode.Value -> msg) -> Sub msg
 
 
 encodeAction : Item -> String -> Encode.Value
@@ -61,12 +61,6 @@ type alias Item =
     }
 
 
-type alias OutboundMsg =
-    { action : OutboundMsgType
-    , item : Item
-    }
-
-
 type alias Model =
     { items : List Item
     , newItemName : Maybe String
@@ -84,16 +78,13 @@ init flags =
     ( flags, outputValue (Encode.string "app started") )
 
 
-type OutboundMsgType
-    = Create
-    | Update
-
-
 type Msg
     = NoOp
     | ChangeNewItem String
     | CreateNewItem
     | ToggleItem Item
+    | GetItems Encode.Value
+    | SetItems (List Item)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -115,6 +106,12 @@ update msg model =
 
         ToggleItem item ->
             ( model, toggleItem item )
+
+        GetItems encoded ->
+            ( model, Cmd.none )
+
+        SetItems items ->
+            ( { model | items = items }, Cmd.none )
 
 
 onEnter : Msg -> Attribute Msg
@@ -153,11 +150,39 @@ viewItem item =
         ]
 
 
+itemDecoder =
+    Decode.map3 (\id name isDone -> { id = id, name = name, isDone = isDone }) (Decode.field "id" Decode.string) (Decode.field "name" Decode.string) (Decode.field "isDone" Decode.bool)
+
+
+decodeUpdatedItemsPayload : Decode.Value -> Result Decode.Error (List Item)
+decodeUpdatedItemsPayload json =
+    Decode.decodeValue (Decode.list itemDecoder) json
+
+
+mapItemsUpdated : Decode.Value -> Msg
+mapItemsUpdated json =
+    case decodeUpdatedItemsPayload json of
+        Ok items ->
+            SetItems items
+
+        Err errorMessage ->
+            let
+                _ =
+                    Debug.log "Error in mapItemsUpdated:" errorMessage
+            in
+            NoOp
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    itemsUpdated mapItemsUpdated
+
+
 main : Program Model Model Msg
 main =
     Browser.element
         { view = view
         , init = init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }

@@ -27,6 +27,7 @@ const isValidPayload = payload => {
 };
 
 const start = () => {
+  let elm;
   db.collection("shoppinglist")
     .get()
     .then(querySnapshot => {
@@ -43,12 +44,12 @@ const start = () => {
       };
       console.log("initial items", items);
 
-      const app = Elm.Main.init({
+      elm = Elm.Main.init({
         node: document.getElementById("root"),
         flags: initialModel
       });
 
-      app.ports.outputValue.subscribe(data => {
+      elm.ports.outputValue.subscribe(data => {
         if (!isValidPayload(data)) {
           return;
         }
@@ -73,6 +74,22 @@ const start = () => {
         }
       });
     });
+
+  db.collection("shoppinglist").onSnapshot(querySnapshot => {
+    // querySnapshot.docChanges().forEach(change => {
+    //   const updatedItem = {
+    //     ...change.doc.data(),
+    //     id: change.doc.id
+    //   };
+    // });
+    const items = querySnapshot.docs.map(item => {
+      return {
+        ...item.data(),
+        id: item.id
+      };
+    });
+    elm.ports.itemsUpdated.send(items);
+  });
 };
 
 start();
