@@ -9,7 +9,7 @@ import Json.Encode as Encode
 import Maybe
 
 
-port outputValue : Encode.Value -> Cmd msg
+port updateItem : Encode.Value -> Cmd msg
 
 
 port itemsUpdated : (Decode.Value -> msg) -> Sub msg
@@ -39,7 +39,7 @@ createItem name =
         encoded =
             encodeCreateAction name
     in
-    outputValue encoded
+    updateItem encoded
 
 
 toggleItem : Item -> Cmd msg
@@ -51,7 +51,7 @@ toggleItem item =
         encoded =
             encodeAction newItem "update"
     in
-    outputValue encoded
+    updateItem encoded
 
 
 type alias Item =
@@ -75,7 +75,7 @@ initialModel =
 
 init : Model -> ( Model, Cmd Msg )
 init flags =
-    ( flags, outputValue (Encode.string "app started") )
+    ( flags, updateItem (Encode.string "app started") )
 
 
 type Msg
@@ -99,7 +99,7 @@ update msg model =
         CreateNewItem ->
             case model.newItemName of
                 Just name ->
-                    ( model, createItem name )
+                    ( { model | newItemName = Nothing }, createItem name )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -136,7 +136,7 @@ view model =
     div []
         [ h1 [] [ text "Kauppakatti" ]
         , ul [] (List.map viewItem model.items)
-        , input [ placeholder "Lisää listalle...", value newItem, onInput ChangeNewItem, onEnter CreateNewItem ] []
+        , input [ type_ "text", placeholder "Lisää listalle...", value newItem, onInput ChangeNewItem, onEnter CreateNewItem ] []
         ]
 
 
@@ -145,7 +145,7 @@ viewItem item =
     li []
         [ label []
             [ input [ type_ "checkbox", checked item.isDone, onClick (ToggleItem item) ] []
-            , text (item.name ++ " (" ++ item.id ++ ")")
+            , text item.name
             ]
         ]
 
