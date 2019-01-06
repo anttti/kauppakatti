@@ -133,19 +133,37 @@ view model =
         newItem =
             Maybe.withDefault "" model.newItemName
     in
-    div []
-        [ h1 [] [ text "Kauppakatti" ]
-        , ul [] (List.map viewItem model.items)
-        , input [ type_ "text", placeholder "Lisää listalle...", value newItem, onInput ChangeNewItem, onEnter CreateNewItem ] []
+    div [ class "p-4 m-6 ml-auto mr-auto max-w-md bg-white shadow-lg rounded" ]
+        [ ul [ class "list-reset" ] (List.map viewItem model.items)
+        , viewAddItemInput newItem
         ]
+
+
+viewAddItemInput : String -> Html Msg
+viewAddItemInput newItemName =
+    let
+        inputClasses =
+            "block w-full text-xl pt-2 pb-2 border-b"
+    in
+    input [ class inputClasses, type_ "text", placeholder "Lisää listalle...", value newItemName, onInput ChangeNewItem, onEnter CreateNewItem ] []
 
 
 viewItem : Item -> Html Msg
 viewItem item =
-    li []
-        [ label []
-            [ input [ type_ "checkbox", checked item.isDone, onClick (ToggleItem item) ] []
-            , text item.name
+    let
+        defaultClasses =
+            "block text-xl cursor-pointer"
+
+        labelClasses =
+            if item.isDone then
+                defaultClasses ++ " line-through opacity-50"
+
+            else
+                defaultClasses
+    in
+    li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter" ]
+        [ label [ class labelClasses, onClick (ToggleItem item) ]
+            [ text item.name
             ]
         ]
 
