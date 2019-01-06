@@ -1,4 +1,4 @@
-port module Main exposing (Model, Msg(..), init, main, update, view)
+port module Main exposing (init, main, update, view)
 
 import Browser
 import Html exposing (Attribute, Html, div, h1, img, input, label, li, text, ul)
@@ -7,30 +7,8 @@ import Html.Events exposing (..)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Maybe
-
-
-port updateItem : Encode.Value -> Cmd msg
-
-
-port itemsUpdated : (Decode.Value -> msg) -> Sub msg
-
-
-encodeAction : Item -> String -> Encode.Value
-encodeAction item action =
-    Encode.object
-        [ ( "action", Encode.string action )
-        , ( "name", Encode.string item.name )
-        , ( "isDone", Encode.bool item.isDone )
-        , ( "id", Encode.string item.id )
-        ]
-
-
-encodeCreateAction : String -> Encode.Value
-encodeCreateAction name =
-    Encode.object
-        [ ( "action", Encode.string "create" )
-        , ( "name", Encode.string name )
-        ]
+import Ports exposing (..)
+import Types exposing (..)
 
 
 createItem : String -> Cmd msg
@@ -54,19 +32,6 @@ toggleItem item =
     updateItem encoded
 
 
-type alias Item =
-    { name : String
-    , isDone : Bool
-    , id : String
-    }
-
-
-type alias Model =
-    { items : List Item
-    , newItemName : Maybe String
-    }
-
-
 initialModel =
     { items = []
     , newItemName = Nothing
@@ -76,15 +41,6 @@ initialModel =
 init : Model -> ( Model, Cmd Msg )
 init flags =
     ( flags, updateItem (Encode.string "app started") )
-
-
-type Msg
-    = NoOp
-    | ChangeNewItem String
-    | CreateNewItem
-    | ToggleItem Item
-    | GetItems Encode.Value
-    | SetItems (List Item)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -166,34 +122,6 @@ viewItem item =
             [ text item.name
             ]
         ]
-
-
-itemDecoder =
-    Decode.map3 (\id name isDone -> { id = id, name = name, isDone = isDone }) (Decode.field "id" Decode.string) (Decode.field "name" Decode.string) (Decode.field "isDone" Decode.bool)
-
-
-decodeUpdatedItemsPayload : Decode.Value -> Result Decode.Error (List Item)
-decodeUpdatedItemsPayload json =
-    Decode.decodeValue (Decode.list itemDecoder) json
-
-
-mapItemsUpdated : Decode.Value -> Msg
-mapItemsUpdated json =
-    case decodeUpdatedItemsPayload json of
-        Ok items ->
-            SetItems items
-
-        Err errorMessage ->
-            let
-                _ =
-                    Debug.log "Error in mapItemsUpdated:" errorMessage
-            in
-            NoOp
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    itemsUpdated mapItemsUpdated
 
 
 main : Program Model Model Msg
