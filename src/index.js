@@ -49,7 +49,7 @@ const start = () => {
         flags: initialModel
       });
 
-      elm.ports.outputValue.subscribe(data => {
+      elm.ports.updateItem.subscribe(data => {
         if (!isValidPayload(data)) {
           return;
         }
