@@ -29,6 +29,21 @@ const isValidPayload = payload => {
 
 const start = uid => {
   let elm;
+
+  db.collection("shoppinglists")
+    .get()
+    .then(
+      querySnapshot => {
+        const items = querySnapshot.docs.map(item => {
+          console.log("item", item);
+        });
+      },
+      error => {
+        console.log("1 error:", error);
+      }
+    );
+  return;
+
   const itemsCollection = `shoppinglist/${uid}/items`;
   console.log("accessing", itemsCollection);
   db.collection(itemsCollection)
@@ -43,7 +58,13 @@ const start = uid => {
 
       const initialModel = {
         items,
-        newItemName: ""
+        newItemName: "",
+        lists: [
+          { name: "Ruokakauppa", id: "12345" },
+          { name: "Rautakauppa", id: "23456" }
+        ],
+        currentlySelectedListId: "12345",
+        newListName: ""
       };
       console.log("initial items", items);
 
@@ -52,12 +73,22 @@ const start = uid => {
         flags: initialModel
       });
 
-      elm.ports.updateItem.subscribe(data => {
+      elm.ports.updateDataStore.subscribe(data => {
         if (!isValidPayload(data)) {
           return;
         }
         console.log("action:", data);
         switch (data.action) {
+          case "new-list":
+            const newList = {
+              name: data.name,
+              roles: {
+                [uid]: "owner"
+              }
+            };
+            console.log("creating new list:", newList);
+            db.collection("shoppinglists").add(newList);
+            break;
           case "create":
             db.collection(itemsCollection).add({
               name: data.name,
@@ -78,6 +109,22 @@ const start = uid => {
       });
     });
 
+  // db.collection("shoppinglists").onSnapshot(
+  //   querySnapshot => {
+  //     console.log("updated:");
+  //     const items = querySnapshot.docs.map(item => {
+  //       console.log(item);
+  //       // return {
+  //       //   ...item.data(),
+  //       //   id: item.id
+  //       // };
+  //     });
+  //   },
+  //   error => {
+  //     console.log("error in onSnapshot:", error);
+  //   }
+  // );
+
   db.collection(itemsCollection).onSnapshot(querySnapshot => {
     const items = querySnapshot.docs.map(item => {
       return {
@@ -93,7 +140,7 @@ const authProvider = new firebase.auth.GoogleAuthProvider();
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
     // Logged in
-    console.log("logged in");
+    console.log("logged in with uid", user.uid);
     start(user.uid);
   } else {
     // Logged out

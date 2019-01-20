@@ -16,9 +16,18 @@ createItem : String -> Cmd msg
 createItem name =
     let
         encoded =
-            encodeCreateAction name
+            encodeCreateItemAction name
     in
-    updateItem encoded
+    updateDataStore encoded
+
+
+createList : String -> Cmd msg
+createList name =
+    let
+        encoded =
+            encodeCreateListAction name
+    in
+    updateDataStore encoded
 
 
 toggleItem : Item -> Cmd msg
@@ -30,7 +39,7 @@ toggleItem item =
         encoded =
             encodeAction newItem "update"
     in
-    updateItem encoded
+    updateDataStore encoded
 
 
 sortByIsDone a b =
@@ -52,13 +61,27 @@ initialModel =
 
 init : Model -> ( Model, Cmd Msg )
 init flags =
-    ( flags, updateItem (Encode.string "app started") )
+    ( flags, updateDataStore (Encode.string "app started") )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NoOp ->
+            ( model, Cmd.none )
+
+        CreateNewList ->
+            case model.newListName of
+                Just name ->
+                    ( { model | newListName = Nothing }, createList name )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ChangeNewList newName ->
+            ( { model | newListName = Just newName }, Cmd.none )
+
+        SelectList listId ->
             ( model, Cmd.none )
 
         ChangeNewItem newName ->
@@ -100,10 +123,19 @@ view model =
     let
         newItem =
             Maybe.withDefault "" model.newItemName
+
+        newList =
+            Maybe.withDefault "" model.newListName
     in
-    div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
-        [ ul [ class "list-reset" ] (List.map viewItem (List.sortWith sortByIsDone model.items))
-        , viewAddItemInput newItem
+    div []
+        [ div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
+            [ ul [ class "list-reset" ] (List.map viewItem (List.sortWith sortByIsDone model.items))
+            , viewAddItemInput newItem
+            ]
+        , div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
+            [ ul [ class "list-reset" ] (List.map viewList (List.sortBy .name model.lists))
+            , viewAddListInput newList
+            ]
         ]
 
 
@@ -114,6 +146,15 @@ viewAddItemInput newItemName =
             "block w-full text-xl pt-2 pb-2 border-b"
     in
     input [ class inputClasses, type_ "text", placeholder "Lisää listalle...", value newItemName, onInput ChangeNewItem, onEnter CreateNewItem ] []
+
+
+viewAddListInput : String -> Html Msg
+viewAddListInput newListName =
+    let
+        inputClasses =
+            "block w-full text-xl pt-2 pb-2 border-b"
+    in
+    input [ class inputClasses, type_ "text", placeholder "Luo uusi lista...", value newListName, onInput ChangeNewList, onEnter CreateNewList ] []
 
 
 viewItem : Item -> Html Msg
@@ -132,6 +173,25 @@ viewItem item =
     li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter cursor-pointer", onClick (ToggleItem item) ]
         [ label [ class labelClasses ]
             [ text item.name
+            ]
+        ]
+
+
+viewList : ShoppingList -> Html Msg
+viewList list =
+    let
+        defaultClasses =
+            "block text-xl"
+
+        -- labelClasses =
+        --     if list.isDone then
+        --         defaultClasses ++ " line-through opacity-50"
+        --     else
+        --         defaultClasses
+    in
+    li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter cursor-pointer", onClick (SelectList list) ]
+        [ label [ class defaultClasses ]
+            [ text list.name
             ]
         ]
 

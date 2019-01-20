@@ -1,4 +1,4 @@
-module Types exposing (Item, Model, Msg(..))
+module Types exposing (Item, Model, Msg(..), ShoppingList)
 
 import Json.Encode as Encode
 
@@ -10,16 +10,28 @@ type alias Item =
     }
 
 
+type alias ShoppingList =
+    { name : String
+    , id : String
+    }
+
+
 type alias Model =
     { items : List Item
+    , lists : List ShoppingList
+    , currentlySelectedListId : Maybe String
     , newItemName : Maybe String
+    , newListName : Maybe String
     }
 
 
 type Msg
     = NoOp
-    | ChangeNewItem String
+    | CreateNewList
+    | ChangeNewList String
+    | SelectList ShoppingList
     | CreateNewItem
+    | ChangeNewItem String
     | ToggleItem Item
     | GetItems Encode.Value
     | SetItems (List Item)
