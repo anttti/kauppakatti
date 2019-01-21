@@ -30,39 +30,56 @@ const isValidPayload = payload => {
 const start = uid => {
   let elm;
 
+  // Get "my" lists
   db.collection("shoppinglists")
-    .get()
-    .then(
-      querySnapshot => {
-        const items = querySnapshot.docs.map(item => {
-          console.log("item", item);
-        });
-      },
-      error => {
-        console.log("1 error:", error);
-      }
-    );
-  return;
-
-  const itemsCollection = `shoppinglist/${uid}/items`;
-  console.log("accessing", itemsCollection);
-  db.collection(itemsCollection)
+    .where("owners", "array-contains", uid)
     .get()
     .then(querySnapshot => {
-      const items = querySnapshot.docs.map(item => {
+      const lists = querySnapshot.docs.map(list => {
+        console.log("list:", list.data());
         return {
-          ...item.data(),
-          id: item.id
+          ...list.data(),
+          id: list.id
         };
       });
+      debugger;
+      lists[0].get("items").then(
+        querySnapshot => {
+          console.log("got items");
+          const items = querySnapshot.docs.map(item => {
+            console.log("item", item.data());
+          });
+        },
+        error => {
+          console.log("errpr", error);
+        }
+      );
+
+      // console.log("fetching", `shoppinglists/${lists[0].id}/items`);
+      // db.collection(`shoppinglists/${lists[0].id}/items`)
+      //   .get()
+      //   .then(
+      //     querySnapshot => {
+      //       console.log("got items");
+      //       const items = querySnapshot.docs.map(item => {
+      //         console.log("item", item.data());
+      //       });
+      //     },
+      //     error => {
+      //       console.log(
+      //         "error fetching",
+      //         `shoppinglists/${lists[0].id}/items:`,
+      //         error
+      //       );
+      //     }
+      // );
+
+      return;
 
       const initialModel = {
         items,
         newItemName: "",
-        lists: [
-          { name: "Ruokakauppa", id: "12345" },
-          { name: "Rautakauppa", id: "23456" }
-        ],
+        lists,
         currentlySelectedListId: "12345",
         newListName: ""
       };
@@ -82,26 +99,24 @@ const start = uid => {
           case "new-list":
             const newList = {
               name: data.name,
-              roles: {
-                [uid]: "owner"
-              }
+              owners: [uid]
             };
             console.log("creating new list:", newList);
             db.collection("shoppinglists").add(newList);
             break;
           case "create":
-            db.collection(itemsCollection).add({
-              name: data.name,
-              isDone: false
-            });
+            // db.collection(itemsCollection).add({
+            //   name: data.name,
+            //   isDone: false
+            // });
             break;
           case "update":
-            db.collection(itemsCollection)
-              .doc(data.id)
-              .set({
-                name: data.name,
-                isDone: data.isDone
-              });
+            // db.collection(itemsCollection)
+            //   .doc(data.id)
+            //   .set({
+            //     name: data.name,
+            //     isDone: data.isDone
+            //   });
             break;
           default:
             break;
@@ -125,15 +140,15 @@ const start = uid => {
   //   }
   // );
 
-  db.collection(itemsCollection).onSnapshot(querySnapshot => {
-    const items = querySnapshot.docs.map(item => {
-      return {
-        ...item.data(),
-        id: item.id
-      };
-    });
-    elm.ports.itemsUpdated.send(items);
-  });
+  // db.collection(itemsCollection).onSnapshot(querySnapshot => {
+  //   const items = querySnapshot.docs.map(item => {
+  //     return {
+  //       ...item.data(),
+  //       id: item.id
+  //     };
+  //   });
+  //   elm.ports.itemsUpdated.send(items);
+  // });
 };
 
 const authProvider = new firebase.auth.GoogleAuthProvider();

@@ -1,0 +1,35 @@
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Make sure the uid of the requesting user matches name of the user
+    // document. The wildcard expression {userId} makes the userId variable
+    // available in rules.
+    match /shoppinglist/{userId}/items/{document=**} {
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid != null;
+    }
+    
+    // Rules for shareable shopping lists (note /shoppinglists/)
+    match /shoppinglists/{shoppinglistId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isValidNewList() {
+        // Valid if shoppinglist does not exist and the new shoppinglist has the correct owner.
+        return resource == null
+          && request.auth.uid in request.resource.data.owners;
+      }
+
+      // Owners can read, write, and delete shoppinglists
+      allow read, update, delete: if isSignedIn() && request.auth.uid in resource.data.owners;
+      allow create: if isSignedIn() && isValidNewList();
+      
+      // match /items/{item} {
+        // allow read: if request.auth.uid in 
+      	//allow read, write;
+      	// allow read, update, delete: if isSignedIn() && request.auth.uid in resource.data.owners;
+      	// allow create: if isSignedIn() && isValidNewList();
+      // }
+    }
+  }
+}

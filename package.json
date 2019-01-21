@@ -12,7 +12,8 @@
     "make": "elm make",
     "repl": "elm repl",
     "reactor": "elm reactor",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy-firestore-rules": "firebase deploy --only firestore:rules"
   },
   "keywords": [],
   "author": "",
@@ -40,7 +41,9 @@
     "elm-hot-webpack-loader": "^1.0.0",
     "elm-test": "^0.19.0-beta8",
     "elm-webpack-loader": "^5.0.0",
+    "eslint": "^5.12.1",
     "file-loader": "^1.1.6",
+    "firebase-tools": "^6.3.0",
     "html-webpack-plugin": "^4.0.0-alpha.2",
     "http-proxy-middleware": "^0.17.4",
     "mini-css-extract-plugin": "^0.4.0",
