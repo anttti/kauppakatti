@@ -102,11 +102,17 @@ const start = uid => {
             console.log("creating new list:", newList);
             db.collection("shoppinglists").add(newList);
             break;
+          case "change-list":
+            getListItems(data.listId).then(items => {
+              console.log("selected lists items:", items);
+              elm.ports.itemsUpdated.send(items);
+            });
+            break;
           case "create":
-            // db.collection(itemsCollection).add({
-            //   name: data.name,
-            //   isDone: false
-            // });
+            db.collection(`shoppinglists/${data.listId}/items`).add({
+              name: data.name,
+              isDone: false
+            });
             break;
           case "update":
             // db.collection(itemsCollection)

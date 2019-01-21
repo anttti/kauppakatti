@@ -1,4 +1,4 @@
-port module Ports exposing (decodeUpdatedItemsPayload, encodeAction, encodeCreateItemAction, encodeCreateListAction, itemDecoder, itemsUpdated, mapItemsUpdated, subscriptions, updateDataStore)
+port module Ports exposing (decodeUpdatedItemsPayload, encodeAction, encodeChangeListAction, encodeCreateItemAction, encodeCreateListAction, itemDecoder, itemsUpdated, mapItemsUpdated, subscriptions, updateDataStore)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -29,14 +29,26 @@ encodeCreateAction action name =
         ]
 
 
-encodeCreateItemAction : String -> Encode.Value
-encodeCreateItemAction name =
-    encodeCreateAction "create" name
+encodeCreateItemAction : String -> String -> Encode.Value
+encodeCreateItemAction name listId =
+    Encode.object
+        [ ( "action", Encode.string "create" )
+        , ( "name", Encode.string name )
+        , ( "listId", Encode.string listId )
+        ]
 
 
 encodeCreateListAction : String -> Encode.Value
 encodeCreateListAction name =
     encodeCreateAction "new-list" name
+
+
+encodeChangeListAction : String -> Encode.Value
+encodeChangeListAction listId =
+    Encode.object
+        [ ( "action", Encode.string "change-list" )
+        , ( "listId", Encode.string listId )
+        ]
 
 
 itemDecoder =

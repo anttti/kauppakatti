@@ -12,11 +12,11 @@ import Ports exposing (..)
 import Types exposing (..)
 
 
-createItem : String -> Cmd msg
-createItem name =
+createItem : String -> String -> Cmd msg
+createItem name listId =
     let
         encoded =
-            encodeCreateItemAction name
+            encodeCreateItemAction name listId
     in
     updateDataStore encoded
 
@@ -26,6 +26,15 @@ createList name =
     let
         encoded =
             encodeCreateListAction name
+    in
+    updateDataStore encoded
+
+
+changeList : String -> Cmd msg
+changeList listId =
+    let
+        encoded =
+            encodeChangeListAction listId
     in
     updateDataStore encoded
 
@@ -81,8 +90,8 @@ update msg model =
         ChangeNewList newName ->
             ( { model | newListName = Just newName }, Cmd.none )
 
-        SelectList listId ->
-            ( model, Cmd.none )
+        SelectList shoppingList ->
+            ( model, changeList shoppingList.id )
 
         ChangeNewItem newName ->
             ( { model | newItemName = Just newName }, Cmd.none )
@@ -90,7 +99,12 @@ update msg model =
         CreateNewItem ->
             case model.newItemName of
                 Just name ->
-                    ( { model | newItemName = Nothing }, createItem name )
+                    case model.currentlySelectedListId of
+                        Just listId ->
+                            ( { model | newItemName = Nothing }, createItem name listId )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Nothing ->
                     ( model, Cmd.none )
