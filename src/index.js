@@ -27,69 +27,67 @@ const isValidPayload = payload => {
   return true;
 };
 
+const getMyLists = uid => {
+  return db
+    .collection("shoppinglists")
+    .where("owners", "array-contains", uid)
+    .get()
+    .then(
+      querySnapshot => {
+        return querySnapshot.docs.map(list => {
+          return {
+            ...list.data(),
+            id: list.id
+          };
+        });
+      },
+      error => {
+        console.error("Error reading fetching my lists:", error);
+        return [];
+      }
+    );
+};
+
+const getListItems = listId => {
+  return db
+    .collection(`shoppinglists/${listId}/items`)
+    .get()
+    .then(
+      querySnapshot => {
+        return querySnapshot.docs.map(item => {
+          return {
+            ...item.data(),
+            id: item.id
+          };
+        });
+      },
+      error => {
+        console.error("Error reading shopping list items:", error);
+      }
+    );
+};
+
 const start = uid => {
   let elm;
 
-  // Get "my" lists
-  db.collection("shoppinglists")
-    .where("owners", "array-contains", uid)
-    .get()
-    .then(querySnapshot => {
-      const lists = querySnapshot.docs.map(list => {
-        console.log("list:", list.data());
-        return {
-          ...list.data(),
-          id: list.id
-        };
-      });
-      debugger;
-      lists[0].get("items").then(
-        querySnapshot => {
-          console.log("got items");
-          const items = querySnapshot.docs.map(item => {
-            console.log("item", item.data());
-          });
-        },
-        error => {
-          console.log("errpr", error);
-        }
-      );
-
-      // console.log("fetching", `shoppinglists/${lists[0].id}/items`);
-      // db.collection(`shoppinglists/${lists[0].id}/items`)
-      //   .get()
-      //   .then(
-      //     querySnapshot => {
-      //       console.log("got items");
-      //       const items = querySnapshot.docs.map(item => {
-      //         console.log("item", item.data());
-      //       });
-      //     },
-      //     error => {
-      //       console.log(
-      //         "error fetching",
-      //         `shoppinglists/${lists[0].id}/items:`,
-      //         error
-      //       );
-      //     }
-      // );
-
-      return;
-
+  getMyLists(uid)
+    .then(lists => {
+      const currentlySelectedListId = lists[0].id;
+      return Promise.all([getListItems(currentlySelectedListId), lists]);
+    })
+    .then(([currentListItems, lists]) => {
       const initialModel = {
-        items,
+        items: currentListItems,
         newItemName: "",
         lists,
-        currentlySelectedListId: "12345",
+        currentlySelectedListId: lists[0].id,
         newListName: ""
       };
-      console.log("initial items", items);
-
+      console.log("initial model", initialModel);
       elm = Elm.Main.init({
         node: document.getElementById("root"),
         flags: initialModel
       });
-
       elm.ports.updateDataStore.subscribe(data => {
         if (!isValidPayload(data)) {
           return;
