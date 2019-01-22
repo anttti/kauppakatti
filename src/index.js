@@ -70,12 +70,28 @@ const getListItems = listId => {
 const start = uid => {
   let elm;
 
+  let snapshotUnsubscribe;
+
+  const updateItems = querySnapshot => {
+    const items = querySnapshot.docs.map(item => {
+      return {
+        ...item.data(),
+        id: item.id
+      };
+    });
+    elm.ports.itemsUpdated.send(items);
+  };
+
   getMyLists(uid)
     .then(lists => {
       const currentlySelectedListId = lists[0].id;
-      return Promise.all([getListItems(currentlySelectedListId), lists]);
+      return Promise.all([
+        getListItems(currentlySelectedListId),
+        lists,
+        currentlySelectedListId
+      ]);
     })
-    .then(([currentListItems, lists]) => {
+    .then(([currentListItems, lists, currentlySelectedListId]) => {
       const initialModel = {
         items: currentListItems,
         newItemName: "",
@@ -88,6 +104,9 @@ const start = uid => {
         node: document.getElementById("root"),
         flags: initialModel
       });
+      snapshotUnsubscribe = db
+        .collection(`shoppinglists/${currentlySelectedListId}/items`)
+        .onSnapshot(updateItems);
       elm.ports.updateDataStore.subscribe(data => {
         if (!isValidPayload(data)) {
           return;
@@ -95,18 +114,23 @@ const start = uid => {
         console.log("action:", data);
         switch (data.action) {
           case "new-list":
-            const newList = {
+            db.collection("shoppinglists").add({
               name: data.name,
               owners: [uid]
-            };
-            console.log("creating new list:", newList);
-            db.collection("shoppinglists").add(newList);
+            });
             break;
           case "change-list":
             getListItems(data.listId).then(items => {
-              console.log("selected lists items:", items);
               elm.ports.itemsUpdated.send(items);
             });
+
+            // Set up a snapshot listener & remove the old one
+            if (snapshotUnsubscribe) {
+              snapshotUnsubscribe();
+            }
+            snapshotUnsubscribe = db
+              .collection(`shoppinglists/${data.listId}/items`)
+              .onSnapshot(updateItems);
             break;
           case "create":
             db.collection(`shoppinglists/${data.listId}/items`).add({
@@ -115,12 +139,12 @@ const start = uid => {
             });
             break;
           case "update":
-            // db.collection(itemsCollection)
-            //   .doc(data.id)
-            //   .set({
-            //     name: data.name,
-            //     isDone: data.isDone
-            //   });
+            db.collection(`shoppinglists/${data.listId}/items`)
+              .doc(data.id)
+              .set({
+                name: data.name,
+                isDone: data.isDone
+              });
             break;
           default:
             break;
@@ -128,31 +152,11 @@ const start = uid => {
       });
     });
 
-  // db.collection("shoppinglists").onSnapshot(
-  //   querySnapshot => {
-  //     console.log("updated:");
-  //     const items = querySnapshot.docs.map(item => {
-  //       console.log(item);
-  //       // return {
-  //       //   ...item.data(),
-  //       //   id: item.id
-  //       // };
-  //     });
-  //   },
-  //   error => {
-  //     console.log("error in onSnapshot:", error);
-  //   }
-  // );
-
-  // db.collection(itemsCollection).onSnapshot(querySnapshot => {
-  //   const items = querySnapshot.docs.map(item => {
-  //     return {
-  //       ...item.data(),
-  //       id: item.id
-  //     };
-  //   });
-  //   elm.ports.itemsUpdated.send(items);
-  // });
+  snapshotUnsubscribe = db
+    .collection(`shoppinglists`)
+    .onSnapshot(querySnapshot => {
+      console.log("Liists updated");
+    });
 };
 
 const authProvider = new firebase.auth.GoogleAuthProvider();

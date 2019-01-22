@@ -39,14 +39,14 @@ changeList listId =
     updateDataStore encoded
 
 
-toggleItem : Item -> Cmd msg
-toggleItem item =
+toggleItem : Item -> String -> Cmd msg
+toggleItem item listId =
     let
         newItem =
             Item item.name (not item.isDone) item.id
 
         encoded =
-            encodeAction newItem "update"
+            encodeUpdateItemAction newItem listId
     in
     updateDataStore encoded
 
@@ -91,7 +91,7 @@ update msg model =
             ( { model | newListName = Just newName }, Cmd.none )
 
         SelectList shoppingList ->
-            ( model, changeList shoppingList.id )
+            ( { model | currentlySelectedListId = Just shoppingList.id }, changeList shoppingList.id )
 
         ChangeNewItem newName ->
             ( { model | newItemName = Just newName }, Cmd.none )
@@ -110,7 +110,12 @@ update msg model =
                     ( model, Cmd.none )
 
         ToggleItem item ->
-            ( model, toggleItem item )
+            case model.currentlySelectedListId of
+                Just listId ->
+                    ( { model | newItemName = Nothing }, toggleItem item listId )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         GetItems encoded ->
             ( model, Cmd.none )
@@ -140,6 +145,9 @@ view model =
 
         newList =
             Maybe.withDefault "" model.newListName
+
+        currentListId =
+            Maybe.withDefault "<nothing>" model.currentlySelectedListId
     in
     div []
         [ div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
@@ -147,7 +155,7 @@ view model =
             , viewAddItemInput newItem
             ]
         , div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
-            [ ul [ class "list-reset" ] (List.map viewList (List.sortBy .name model.lists))
+            [ ul [ class "list-reset" ] (List.map (viewList currentListId) (List.sortBy .name model.lists))
             , viewAddListInput newList
             ]
         ]
@@ -175,7 +183,7 @@ viewItem : Item -> Html Msg
 viewItem item =
     let
         defaultClasses =
-            "block text-xl"
+            "block text-xl cursor-pointer"
 
         labelClasses =
             if item.isDone then
@@ -191,20 +199,21 @@ viewItem item =
         ]
 
 
-viewList : ShoppingList -> Html Msg
-viewList list =
+viewList : String -> ShoppingList -> Html Msg
+viewList selectedListId list =
     let
         defaultClasses =
-            "block text-xl"
+            "block text-xl cursor-pointer"
 
-        -- labelClasses =
-        --     if list.isDone then
-        --         defaultClasses ++ " line-through opacity-50"
-        --     else
-        --         defaultClasses
+        labelClasses =
+            if selectedListId == list.id then
+                defaultClasses ++ " font-bold"
+
+            else
+                defaultClasses
     in
     li [ class "pb-2 pt-2 border-b border-grey-light hover:bg-grey-lighter cursor-pointer", onClick (SelectList list) ]
-        [ label [ class defaultClasses ]
+        [ label [ class labelClasses ]
             [ text list.name
             ]
         ]

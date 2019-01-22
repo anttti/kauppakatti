@@ -1,4 +1,4 @@
-port module Ports exposing (decodeUpdatedItemsPayload, encodeAction, encodeChangeListAction, encodeCreateItemAction, encodeCreateListAction, itemDecoder, itemsUpdated, mapItemsUpdated, subscriptions, updateDataStore)
+port module Ports exposing (decodeUpdatedItemsPayload, encodeAction, encodeChangeListAction, encodeCreateItemAction, encodeCreateListAction, encodeUpdateItemAction, itemDecoder, itemsUpdated, mapItemsUpdated, subscriptions, updateDataStore)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -21,11 +21,14 @@ encodeAction item action =
         ]
 
 
-encodeCreateAction : String -> String -> Encode.Value
-encodeCreateAction action name =
+encodeUpdateItemAction : Item -> String -> Encode.Value
+encodeUpdateItemAction item listId =
     Encode.object
-        [ ( "action", Encode.string action )
-        , ( "name", Encode.string name )
+        [ ( "action", Encode.string "update" )
+        , ( "name", Encode.string item.name )
+        , ( "isDone", Encode.bool item.isDone )
+        , ( "id", Encode.string item.id )
+        , ( "listId", Encode.string listId )
         ]
 
 
@@ -40,7 +43,10 @@ encodeCreateItemAction name listId =
 
 encodeCreateListAction : String -> Encode.Value
 encodeCreateListAction name =
-    encodeCreateAction "new-list" name
+    Encode.object
+        [ ( "action", Encode.string "new-list" )
+        , ( "name", Encode.string name )
+        ]
 
 
 encodeChangeListAction : String -> Encode.Value
@@ -73,7 +79,8 @@ mapItemsUpdated json =
             in
             NoOp
 
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    itemsUpdated mapItemsUpdated
+    Sub.batch
+        [ itemsUpdated mapItemsUpdated
+        ]
