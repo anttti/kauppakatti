@@ -163,6 +163,6 @@ firebase.auth().onAuthStateChanged(user => {
   } else {
     // Logged out
     console.log("logged out");
-    firebase.auth().signInWithPopup(authProvider);
+    firebase.auth().signInWithRedirect(authProvider);
   }
 });
