@@ -1,7 +1,7 @@
 port module Main exposing (init, main, update, view)
 
 import Browser
-import Html exposing (Attribute, Html, div, h1, img, input, label, li, text, ul)
+import Html exposing (Attribute, Html, button, div, h1, img, input, label, li, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
@@ -90,8 +90,11 @@ update msg model =
         ChangeNewList newName ->
             ( { model | newListName = Just newName }, Cmd.none )
 
+        ToggleLists ->
+            ( { model | isListsOpen = not model.isListsOpen }, Cmd.none )
+
         SelectList shoppingList ->
-            ( { model | currentlySelectedListId = Just shoppingList.id }, changeList shoppingList.id )
+            ( { model | currentlySelectedListId = Just shoppingList.id, isListsOpen = not model.isListsOpen }, changeList shoppingList.id )
 
         ChangeNewItem newName ->
             ( { model | newItemName = Just newName }, Cmd.none )
@@ -150,13 +153,38 @@ view model =
             Maybe.withDefault "<nothing>" model.currentlySelectedListId
     in
     div []
-        [ div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
-            [ ul [ class "list-reset" ] (List.map viewItem (List.sortWith sortByIsDone model.items))
-            , viewAddItemInput newItem
+        [ viewHeader model.isListsOpen
+        , viewItems model.isListsOpen (getCurrentList model.lists model.currentlySelectedListId) model.items newItem
+        , viewListsMenu model.isListsOpen model.lists currentListId newList
+        ]
+
+
+getCurrentList : List ShoppingList -> Maybe String -> Maybe ShoppingList
+getCurrentList lists id =
+    case id of
+        Just listId ->
+            List.head (List.filter (\l -> l.id == listId) lists)
+
+        Nothing ->
+            Nothing
+
+
+viewHeader : Bool -> Html Msg
+viewHeader isListsOpen =
+    let
+        buttonLabel =
+            if isListsOpen then
+                "Ostoslista"
+
+            else
+                "Listat"
+    in
+    div [ class "flex justify-between items-center bg-grey-lighter shadow-lg" ]
+        [ div [ class "p-4 font-bold uppercase tracking-wide text-grey-darker text-sm" ]
+            [ text "😼 Kauppakatti"
             ]
-        , div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
-            [ ul [ class "list-reset" ] (List.map (viewList currentListId) (List.sortBy .name model.lists))
-            , viewAddListInput newList
+        , div [ class "p-4 text-grey-darker" ]
+            [ button [ class "p-2 rounded border border-grey text-grey-darker text-sm uppercase tracking-wide font-bold", onClick ToggleLists ] [ text buttonLabel ]
             ]
         ]
 
@@ -179,6 +207,24 @@ viewAddListInput newListName =
     input [ class inputClasses, type_ "text", placeholder "Luo uusi lista...", value newListName, onInput ChangeNewList, onEnter CreateNewList ] []
 
 
+viewItems : Bool -> Maybe ShoppingList -> List Item -> String -> Html Msg
+viewItems isListsOpen shoppingList items newItem =
+    if isListsOpen then
+        div [] []
+
+    else
+        case shoppingList of
+            Just list ->
+                div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
+                    [ h1 [ class "mb-4 font-bold uppercase tracking-wide text-grey-darker text-sm" ] [ text list.name ]
+                    , ul [ class "list-reset" ] (List.map viewItem (List.sortWith sortByIsDone items))
+                    , viewAddItemInput newItem
+                    ]
+
+            Nothing ->
+                div [] []
+
+
 viewItem : Item -> Html Msg
 viewItem item =
     let
@@ -197,6 +243,19 @@ viewItem item =
             [ text item.name
             ]
         ]
+
+
+viewListsMenu : Bool -> List ShoppingList -> String -> String -> Html Msg
+viewListsMenu isListsOpen lists currentListId newList =
+    if not isListsOpen then
+        div [] []
+
+    else
+        div [ class "p-4 mt-3 ml-3 mr-3 md:ml-auto md:mr-auto md:max-w-md bg-white shadow-lg rounded" ]
+            [ h1 [ class "mb-4 font-bold uppercase tracking-wide text-grey-darker text-sm" ] [ text "Listat" ]
+            , ul [ class "list-reset" ] (List.map (viewList currentListId) (List.sortBy .name lists))
+            , viewAddListInput newList
+            ]
 
 
 viewList : String -> ShoppingList -> Html Msg

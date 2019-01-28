@@ -84,6 +84,7 @@ const start = async uid => {
     items: currentListItems,
     newItemName: "",
     lists,
+    isListsOpen: false,
     currentlySelectedListId: lists[0].id,
     newListName: ""
   };

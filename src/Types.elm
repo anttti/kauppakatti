@@ -19,6 +19,7 @@ type alias ShoppingList =
 type alias Model =
     { items : List Item
     , lists : List ShoppingList
+    , isListsOpen : Bool
     , currentlySelectedListId : Maybe String
     , newItemName : Maybe String
     , newListName : Maybe String
@@ -29,6 +30,7 @@ type Msg
     = NoOp
     | CreateNewList
     | ChangeNewList String
+    | ToggleLists
     | SelectList ShoppingList
     | CreateNewItem
     | ChangeNewItem String
