@@ -181,7 +181,10 @@ viewHeader isListsOpen =
     in
     div [ class "flex justify-between items-center bg-grey-lighter shadow-lg" ]
         [ div [ class "p-4 font-bold uppercase tracking-wide text-grey-darker text-sm" ]
-            [ text "😼 Kauppakatti"
+            [ text "Kauppakatti"
+            ]
+        , div [ class "pt-2 text-5xl" ]
+            [ text "😼"
             ]
         , div [ class "p-4 text-grey-darker" ]
             [ button [ class "p-2 rounded border border-grey text-grey-darker text-sm uppercase tracking-wide font-bold", onClick ToggleLists ] [ text buttonLabel ]
